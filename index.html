@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>现实价值转换器</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d2e;--muted:#9aa9bd;--text:#f4f7fb;--line:#26364c;--accent:#69d5b2;--red:#ff8c8c}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#111d30,#080d17 65%);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);min-height:100vh;padding:24px 14px}
+main{max-width:680px;margin:0 auto}.top{padding:18px 4px 20px}.eyebrow{color:var(--accent);font-size:12px;letter-spacing:2px;font-weight:700}.title{font-size:30px;font-weight:800;margin:8px 0}.sub{color:var(--muted);line-height:1.6;font-size:14px}
+.card{background:rgba(18,29,46,.96);border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 12px 32px #0003}
+label{display:block;color:var(--muted);font-size:13px;margin:0 0 8px}
+input,select{width:100%;background:#0b1422;border:1px solid #34465f;color:var(--text);border-radius:11px;padding:14px;font-size:17px;outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.result{padding:18px;border-radius:14px;background:#0b1725;border:1px solid #29445a;margin-top:16px}
+.result .big{font-size:32px;font-weight:800;color:var(--accent);margin:5px 0}.muted{color:var(--muted);font-size:12px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.tag{border:1px solid #31435a;background:#152338;border-radius:999px;padding:7px 11px;font-size:12px;color:#dce8f5}
+h2{font-size:17px;margin:0 0 14px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{background:#0b1422;border:1px solid var(--line);padding:13px;border-radius:12px}.item b{display:block;font-size:18px;margin:5px 0}.item span{color:var(--muted);font-size:12px}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--accent);color:#092019;font-weight:750;font-size:14px;cursor:pointer}
+button.secondary{background:#22334a;color:var(--text);border:1px solid #3a4c64}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.foot{color:var(--muted);font-size:12px;line-height:1.6;padding:6px 4px 20px}
+@media(max-width:430px){.grid{grid-template-columns:1fr}.title{font-size:26px}.comparison{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div class="eyebrow">TRADING × REAL LIFE</div>
+    <div class="title">现实价值转换器</div>
+    <div class="sub">别只看账户里的数字。把每一笔盈利或亏损，换算成现实生活里的时间、物品和体验。</div>
+  </header>
+
+  <section class="card">
+    <div class="grid">
+      <div>
+        <label for="amount">盈亏金额（USDT）</label>
+        <input id="amount" type="number" min="0" step="0.01" value="1000" inputmode="decimal">
+      </div>
+      <div>
+        <label for="rate">USDT兑人民币</label>
+        <input id="rate" type="number" min="0" step="0.01" value="7.2" inputmode="decimal">
+      </div>
+    </div>
+    <div class="result" aria-live="polite">
+      <div class="muted">折合人民币约</div>
+      <div class="big" id="rmb">¥7,200</div>
+      <div class="muted" id="summary">这笔钱，值得认真感受一下。</div>
+      <div class="tags" id="tags"></div>
+    </div>
+    <div class="actions">
+      <button id="loss">切换为亏损</button>
+      <button class="secondary" id="profit">切换为盈利</button>
+      <button class="secondary" id="copy">复制结果</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>这笔钱在现实里可以买什么？</h2>
+    <div class="comparison" id="comparison"></div>
+    <p class="muted" style="margin:13px 0 0">以下仅为方便理解的示意价格，可按你所在城市和真实消费水平调整。</p>
+  </section>
+
+  <section class="card">
+    <h2>自定义你的现实参照物</h2>
+    <div class="grid">
+      <div><label for="meal">一顿饭（元）</label><input id="meal" type="number" min="1" value="50"></div>
+      <div><label for="salary">月工资（元）</label><input id="salary" type="number" min="1" value="5000"></div>
+      <div><label for="milk">一杯奶茶（元）</label><input id="milk" type="number" min="1" value="15"></div>
+      <div><label for="rent">月房租（元）</label><input id="rent" type="number" min="1" value="2000"></div>
+    </div>
+  </section>
+  <div class="foot">提醒：这是帮助建立金钱感知的生活化换算工具，不是投资建议。汇率和商品价格会变化，计算结果仅供参考。数据只在当前页面本地计算，不会上传。</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let sign='亏损';
+const fmt=n=>new Intl.NumberFormat('zh-CN',{maximumFractionDigits:2}).format(n);
+function calculate(){
+ const amount=Math.max(0,Number($('amount').value)||0), rate=Math.max(0,Number($('rate').value)||0), r=amount*rate;
+ $('rmb').textContent='¥'+fmt(r);
+ $('summary').textContent=sign+' '+fmt(amount)+' USDT ≈ '+fmt(r)+' 元人民币';
+ const meal=Math.max(1,Number($('meal').value)||50), salary=Math.max(1,Number($('salary').value)||5000), milk=Math.max(1,Number($('milk').value)||15), rent=Math.max(1,Number($('rent').value)||2000);
+ $('tags').innerHTML=[
+  `约 ${fmt(r/meal)} 顿饭`,`约 ${fmt(r/milk)} 杯奶茶`,
+  `约 ${(r/salary).toFixed(2)} 个月工资`,`约 ${(r/rent).toFixed(2)} 个月房租`
+ ].map(x=>`<span class="tag">${x}</span>`).join('');
+ const refs=[
+  ['日常吃饭',meal,'顿饭'],['奶茶/咖啡',milk,'杯'],['月工资',salary,'个月工资'],['房租',rent,'个月房租']
+ ];
+ $('comparison').innerHTML=refs.map(([name,cost,unit])=>`<div class="item"><span>${name}</span><b>${fmt(r/cost)} ${unit}</b><span>按 ¥${fmt(cost)} / 份估算</span></div>`).join('');
+}
+$('loss').onclick=()=>{sign='亏损';calculate();};
+$('profit').onclick=()=>{sign='盈利';calculate();};
+$('copy').onclick=async()=>{
+ const amount=Math.max(0,Number($('amount').value)||0),r=amount*(Number($('rate').value)||0);
+ const msg=`现实价值转换器：${sign} ${fmt(amount)} USDT，约合人民币 ¥${fmt(r)}。`;
+ try{await navigator.clipboard.writeText(msg);$('copy').textContent='已复制';setTimeout(()=>$('copy').textContent='复制结果',1500);}
+ catch(e){$('copy').textContent='复制失败';}
+};
+['amount','rate','meal','salary','milk','rent'].forEach(id=>$(id).addEventListener('input',calculate));
+calculate();
+</script>
+</body>
+</html>
